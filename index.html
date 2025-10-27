@@ -1,3 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diablos Race Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+        #stopwatch-display {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .controls button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        #start { background-color: #4CAF50; color: white; }
+        #stop { background-color: #f44336; color: white; }
+        #reset { background-color: #ff9800; color: white; }
+        #saveTime { background-color: #03A9F4; color: white; }
+        #upload { background-color: #8BC34A; color: white; }
+        
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .input-group {
+            margin: 15px 0;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        #statusMessage {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 1.2em;
+            font-weight: bold;
+            color: #333;
+            background-color: #eee;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Diablos Race Timer</h2>
+    
+    <div id="stopwatch-display">00:00.000</div>
+    
+    <div class="controls">
+        <button id="start">Start</button>
+        <button id="stop" disabled>Stop</button>
+        <button id="reset">Reset</button>
+    </div>
+
+    <div class="input-group">
+        <label for="playerID">Player ID:</label>
+        <input type="text" id="playerID" placeholder="Enter Player ID" required>
+    </div>
+
+    <div class="input-group">
+        <label for="laps">Laps Completed:</label>
+        <input type="number" id="laps" value="1" min="1" required>
+    </div>
+
+    <div class="controls">
+        <button id="saveTime" disabled>Save Time</button>
+        <button id="upload" disabled>Upload Time</button>
+    </div>
+    
+    <div id="statusMessage">Ready.</div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', (event) => {
     // ----------------------------------------------------------------------------------
@@ -11,27 +121,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
     let timerInterval;
     let currentMs = 0;
     
-    // SELECT ELEMENTS: Trying common capitalization variants to match HTML
+    // Select elements using document.getElementById (IDs MUST match HTML above)
     const stopwatchDisplay = document.getElementById('stopwatch-display');
-    // Using common capitalized IDs (PlayerID, Laps) as a fix:
-    const playerIDInput = document.getElementById('playerID') || document.getElementById('PlayerID'); 
-    const lapsInput = document.getElementById('laps') || document.getElementById('Laps');
-    const saveTimeButton = document.getElementById('saveTime') || document.getElementById('SaveTime');
-    const uploadButton = document.getElementById('upload') || document.getElementById('Upload');
-    const statusMessage = document.getElementById('statusMessage') || document.getElementById('StatusMessage');
+    const playerIDInput = document.getElementById('playerID'); 
+    const lapsInput = document.getElementById('laps');
+    const saveTimeButton = document.getElementById('saveTime');
+    const uploadButton = document.getElementById('upload');
+    const statusMessage = document.getElementById('statusMessage');
 
     // Select buttons explicitly
-    const startButton = document.getElementById('start') || document.getElementById('Start');
-    const stopButton = document.getElementById('stop') || document.getElementById('Stop');
-    const resetButton = document.getElementById('reset') || document.getElementById('Reset');
+    const startButton = document.getElementById('start');
+    const stopButton = document.getElementById('stop');
+    const resetButton = document.getElementById('reset');
     
-    // Check if critical elements exist before proceeding to prevent crash (Safety Check)
-    // NOTE: This check now accounts for the common ID mistakes above.
-    if (!startButton || !stopButton || !resetButton || !stopwatchDisplay) {
-        console.error("CRITICAL ERROR: One or more essential HTML elements (buttons/display) are missing.");
-        document.body.textContent = "Error: App failed to load. Check element IDs.";
-        return; // Stop script execution
-    }
+    // The previous safety check is removed, as the HTML is now guaranteed to match the script.
 
     // Helper to format milliseconds into MM:SS.mmm
     function formatTime(ms) {
@@ -99,7 +202,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Upload the time to Google Sheets
     function uploadTime() {
-        // Use the selected input element's value
         const playerID = playerIDInput.value.trim();
         const laps = parseInt(lapsInput.value);
 
@@ -171,3 +273,5 @@ document.addEventListener('DOMContentLoaded', (event) => {
     resetTimer();
 }); // Closes the DOMContentLoaded listener
 </script>
+</body>
+</html>
