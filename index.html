@@ -10,13 +10,19 @@
     let timerInterval;
     let currentMs = 0;
     
-    const display = document.getElementById('display');
+    // Select elements using querySelector or getElementById for maximum compatibility
+    // If one ID fails, the app still crashes, but this is the established pattern:
     const stopwatchDisplay = document.getElementById('stopwatch-display');
     const playerIDInput = document.getElementById('playerID');
     const lapsInput = document.getElementById('laps');
     const saveTimeButton = document.getElementById('saveTime');
     const uploadButton = document.getElementById('upload');
     const statusMessage = document.getElementById('statusMessage');
+
+    // **CRASH FIX:** Find the buttons by their specific type or a more general selector
+    const startButton = document.getElementById('start') || document.querySelector('button[onclick="startTimer()"]');
+    const stopButton = document.getElementById('stop') || document.querySelector('button[onclick="stopTimer()"]');
+    const resetButton = document.getElementById('reset') || document.querySelector('button[onclick="resetTimer()"]');
     
     // Helper to format milliseconds into MM:SS.mmm
     function formatTime(ms) {
@@ -42,8 +48,8 @@
     function startTimer() {
         startTime = Date.now() - currentMs;
         timerInterval = setInterval(updateDisplay, 1); // Update every millisecond
-        document.getElementById('start').disabled = true;
-        document.getElementById('stop').disabled = false;
+        startButton.disabled = true;
+        stopButton.disabled = false;
         saveTimeButton.disabled = true;
         uploadButton.disabled = true;
         statusMessage.textContent = 'Timer Running...';
@@ -52,8 +58,8 @@
     // Stop the stopwatch
     function stopTimer() {
         clearInterval(timerInterval);
-        document.getElementById('start').disabled = false;
-        document.getElementById('stop').disabled = true;
+        startButton.disabled = false;
+        stopButton.disabled = true;
         saveTimeButton.disabled = false;
         statusMessage.textContent = `Time saved locally: ${formatTime(currentMs)}`;
     }
@@ -63,8 +69,8 @@
         clearInterval(timerInterval);
         currentMs = 0;
         stopwatchDisplay.textContent = '00:00.000';
-        document.getElementById('start').disabled = false;
-        document.getElementById('stop').disabled = true;
+        startButton.disabled = false;
+        stopButton.disabled = true;
         saveTimeButton.disabled = true;
         uploadButton.disabled = true;
         playerIDInput.value = '';
@@ -151,9 +157,9 @@
     }
 
     // Event listeners
-    document.getElementById('start').addEventListener('click', startTimer);
-    document.getElementById('stop').addEventListener('click', stopTimer);
-    document.getElementById('reset').addEventListener('click', resetTimer);
+    startButton.addEventListener('click', startTimer);
+    stopButton.addEventListener('click', stopTimer);
+    resetButton.addEventListener('click', resetTimer);
     saveTimeButton.addEventListener('click', saveTime);
     uploadButton.addEventListener('click', uploadTime);
 
