@@ -1,7 +1,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', (event) => {
     // ----------------------------------------------------------------------------------
-    // *** Web App URL (FINAL CORRECT URL - BRACKETS REMOVED) ***
+    // *** Web App URL (FINAL CORRECT URL) ***
     // ----------------------------------------------------------------------------------
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbBhd0IPvTDTgSM8jnz8Giw2gmWAv3c_xIyucuw3DDmOBk1RjuCQYYtpFb3BBfHwUm/exec"; 
     // ----------------------------------------------------------------------------------
@@ -11,20 +11,22 @@ document.addEventListener('DOMContentLoaded', (event) => {
     let timerInterval;
     let currentMs = 0;
     
-    // Select elements using document.getElementById
+    // SELECT ELEMENTS: Trying common capitalization variants to match HTML
     const stopwatchDisplay = document.getElementById('stopwatch-display');
-    const playerIDInput = document.getElementById('playerID');
-    const lapsInput = document.getElementById('laps');
-    const saveTimeButton = document.getElementById('saveTime');
-    const uploadButton = document.getElementById('upload');
-    const statusMessage = document.getElementById('statusMessage');
+    // Using common capitalized IDs (PlayerID, Laps) as a fix:
+    const playerIDInput = document.getElementById('playerID') || document.getElementById('PlayerID'); 
+    const lapsInput = document.getElementById('laps') || document.getElementById('Laps');
+    const saveTimeButton = document.getElementById('saveTime') || document.getElementById('SaveTime');
+    const uploadButton = document.getElementById('upload') || document.getElementById('Upload');
+    const statusMessage = document.getElementById('statusMessage') || document.getElementById('StatusMessage');
 
     // Select buttons explicitly
-    const startButton = document.getElementById('start');
-    const stopButton = document.getElementById('stop');
-    const resetButton = document.getElementById('reset');
+    const startButton = document.getElementById('start') || document.getElementById('Start');
+    const stopButton = document.getElementById('stop') || document.getElementById('Stop');
+    const resetButton = document.getElementById('reset') || document.getElementById('Reset');
     
     // Check if critical elements exist before proceeding to prevent crash (Safety Check)
+    // NOTE: This check now accounts for the common ID mistakes above.
     if (!startButton || !stopButton || !resetButton || !stopwatchDisplay) {
         console.error("CRITICAL ERROR: One or more essential HTML elements (buttons/display) are missing.");
         document.body.textContent = "Error: App failed to load. Check element IDs.";
@@ -97,6 +99,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Upload the time to Google Sheets
     function uploadTime() {
+        // Use the selected input element's value
         const playerID = playerIDInput.value.trim();
         const laps = parseInt(lapsInput.value);
 
