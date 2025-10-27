@@ -1,271 +1,163 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diablos Speed Tracker V1.0</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #2c3e50; /* Darker blue-gray background */
-            color: #ecf0f1; /* Light gray text */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 50px;
-        }
-        .container {
-            background-color: #34495e; /* Slightly lighter container background */
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
-        h1 {
-            color: #f1c40f; /* Yellow for the title */
-            margin-bottom: 20px;
-        }
-        #display {
-            font-size: 3em;
-            margin: 20px 0;
-            padding: 10px;
-            background-color: #1c2833;
-            border-radius: 5px;
-            color: #2ecc71; /* Green display text */
-            font-weight: bold;
-        }
-        .button-group {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 12px 25px;
-            margin: 8px 5px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            flex-grow: 1;
-            min-width: 150px;
-        }
-        button:active {
-            transform: scale(0.98);
-        }
-        #start-btn { background-color: #2ecc71; color: white; } /* Green */
-        #stop-btn { background-color: #e74c3c; color: white; } /* Red */
-        #reset-btn { background-color: #c0392b; color: white; } /* Dark Red */
-        #save-btn { background-color: #27ae60; color: white; } /* Darker Green */
-        #upload-btn { 
-            background-color: #f39c12; /* Orange-Yellow */
-            color: #34495e; /* Dark text for contrast */
-            font-weight: bold;
-            width: 100%;
-            padding: 15px;
-        }
-
-        .laps-group {
-            display: none; /* Hide the laps input as it's now a prompt */
-        }
-
-        #status-message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            opacity: 0; /* Hidden by default */
-            transition: opacity 0.3s;
-        }
-        .status-info { background-color: #3498db; color: white; } /* Blue */
-        .status-success { background-color: #2ecc71; color: white; } /* Green */
-        .status-error { background-color: #e74c3c; color: white; } /* Red */
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>DIABLOS SPEED TRACKER</h1>
-        <div id="display">00:00.000</div>
+<script>
+    // ----------------------------------------------------------------------------------
+    // *** Web App URL (Final, corrected link to Version 7 Apps Script) ***
+    // ----------------------------------------------------------------------------------
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbBhd0IPvTDTgSM8jnz8Giw2gmWAv3c_xIyucuw3DDmOBk1RjuCQYYtpFb3BBfHwUm/exec"; 
+    // ----------------------------------------------------------------------------------
+    
+    // Global variables for the timer
+    let startTime;
+    let timerInterval;
+    let currentMs = 0;
+    
+    const display = document.getElementById('display');
+    const stopwatchDisplay = document.getElementById('stopwatch-display');
+    const playerIDInput = document.getElementById('playerID');
+    const lapsInput = document.getElementById('laps');
+    const saveTimeButton = document.getElementById('saveTime');
+    const uploadButton = document.getElementById('upload');
+    const statusMessage = document.getElementById('statusMessage');
+    
+    // Helper to format milliseconds into MM:SS.mmm
+    function formatTime(ms) {
+        if (typeof ms !== 'number' || ms < 0) return "00:00.000";
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const milliseconds = ms % 1000;
         
-        <div class="button-group">
-            <button id="start-btn">▶ START</button>
-            <button id="stop-btn">■ STOP</button>
-            <button id="reset-btn">↻ RESET</button>
-            <button id="save-btn">💾 SAVE TIME</button>
-        </div>
-        
-        <button id="upload-btn">UPLOAD TIME (ID: Hernandez)</button>
-        
-        <div id="status-message"></div>
-    </div>
+        const pad = (num) => String(num).padStart(2, '0');
+        const msPad = String(milliseconds).padStart(3, '0');
 
-    <script>
-        // --- CONFIGURATION ---
-        // *** THIS IS YOUR CORRECT, LIVE, DEPLOYED APPS SCRIPT URL ***
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbBhd0IPvTDTgSM8jnz8Giw2gmWAv3c_xIyucuw3DDmOBk1RjuCQYYtpFb3BBfHwUm/exec"; 
-        const DEFAULT_PLAYER_ID = "Hernandez"; // Default to a player name from your sheet
-        
-        // --- STATE VARIABLES ---
-        let startTime;
-        let timerInterval;
-        let elapsedTime = 0;
-        let savedTimeMs = null;
-        let savedLaps = null;
+        return `${pad(minutes)}:${pad(seconds)}.${msPad}`;
+    }
 
-        // --- DOM ELEMENTS ---
-        const display = document.getElementById('display');
-        const startBtn = document.getElementById('start-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const saveBtn = document.getElementById('save-btn');
-        const uploadBtn = document.getElementById('upload-btn');
-        const statusMessage = document.getElementById('status-message');
+    // Function to update the displayed time
+    function updateDisplay() {
+        currentMs = Date.now() - startTime;
+        stopwatchDisplay.textContent = formatTime(currentMs);
+    }
 
-        // --- HELPER FUNCTIONS ---
-        function formatTime(ms) {
-            const totalSeconds = Math.floor(ms / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            const milliseconds = ms % 1000;
-            
-            const pad = (num) => String(num).padStart(2, '0');
-            
-            return `${pad(minutes)}:${pad(seconds)}.${String(milliseconds).padStart(3, '0')}`;
+    // Start the stopwatch
+    function startTimer() {
+        startTime = Date.now() - currentMs;
+        timerInterval = setInterval(updateDisplay, 1); // Update every millisecond
+        document.getElementById('start').disabled = true;
+        document.getElementById('stop').disabled = false;
+        saveTimeButton.disabled = true;
+        uploadButton.disabled = true;
+        statusMessage.textContent = 'Timer Running...';
+    }
+
+    // Stop the stopwatch
+    function stopTimer() {
+        clearInterval(timerInterval);
+        document.getElementById('start').disabled = false;
+        document.getElementById('stop').disabled = true;
+        saveTimeButton.disabled = false;
+        statusMessage.textContent = `Time saved locally: ${formatTime(currentMs)}`;
+    }
+
+    // Reset the stopwatch
+    function resetTimer() {
+        clearInterval(timerInterval);
+        currentMs = 0;
+        stopwatchDisplay.textContent = '00:00.000';
+        document.getElementById('start').disabled = false;
+        document.getElementById('stop').disabled = true;
+        saveTimeButton.disabled = true;
+        uploadButton.disabled = true;
+        playerIDInput.value = '';
+        lapsInput.value = '1';
+        statusMessage.textContent = 'Ready.';
+    }
+
+    // Save the time locally (no action needed other than enabling upload)
+    function saveTime() {
+        if (currentMs > 0) {
+            uploadButton.disabled = false;
+            statusMessage.textContent = `Ready to upload time for ${playerIDInput.value}.`;
+        } else {
+            statusMessage.textContent = 'Start the timer first.';
+        }
+    }
+
+    // Upload the time to Google Sheets
+    function uploadTime() {
+        const playerID = playerIDInput.value.trim();
+        const laps = parseInt(lapsInput.value);
+
+        if (!playerID) {
+            alert("Please enter a PlayerID.");
+            return;
         }
 
-        function showMessage(message, type = 'info', duration = 3000) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-${type}`;
-            statusMessage.style.opacity = '1';
-            
-            clearTimeout(statusMessage.timeout);
-            statusMessage.timeout = setTimeout(() => {
-                statusMessage.style.opacity = '0';
-            }, duration);
+        if (isNaN(laps) || laps <= 0) {
+            alert("Please enter a valid number of laps.");
+            return;
         }
 
-        function updateDisplay() {
-            const now = Date.now();
-            elapsedTime = now - startTime;
-            display.textContent = formatTime(elapsedTime);
+        if (currentMs <= 0) {
+            alert("Time must be greater than zero to upload.");
+            return;
         }
+        
+        uploadButton.disabled = true;
+        statusMessage.textContent = 'UPLOADING... please wait.';
 
-        // --- TIMER LOGIC ---
-        startBtn.addEventListener('click', () => {
-            if (!timerInterval) {
-                startTime = Date.now() - elapsedTime;
-                timerInterval = setInterval(updateDisplay, 10);
-                showMessage('Timer started.', 'info');
+        const data = {
+            PlayerID: playerID,
+            TimeMs: currentMs,
+            Laps: laps
+        };
+
+        // Use the defined WEB_APP_URL
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            // Check if response is okay (status 200)
+            if (!response.ok) {
+                // If not, read the error message from the server response
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || 'Server returned an error status.');
+                });
             }
-        });
-
-        stopBtn.addEventListener('click', () => {
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-                elapsedTime = Date.now() - startTime;
-                display.textContent = formatTime(elapsedTime);
-                showMessage('Timer stopped.', 'info');
-            }
-        });
-
-        resetBtn.addEventListener('click', () => {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            elapsedTime = 0;
-            savedTimeMs = null;
-            savedLaps = null;
-            display.textContent = "00:00.000";
-            uploadBtn.textContent = "UPLOAD TIME (ID: " + DEFAULT_PLAYER_ID + ")";
-            showMessage('Timer reset.', 'error');
-        });
-
-        // --- SAVE TIME (NEW LOGIC) ---
-        saveBtn.addEventListener('click', () => {
-            if (elapsedTime > 0) {
-                // *** IMPLEMENT YOUR LAPS PROMPT HERE ***
-                const lapsPrompt = prompt("How many laps did you run? (Enter a number 1 or more)", "2");
-                
-                if (lapsPrompt === null) {
-                    showMessage("Save cancelled.", 'error');
-                    return;
-                }
-                
-                const enteredLaps = parseInt(lapsPrompt);
-                
-                if (isNaN(enteredLaps) || enteredLaps < 1) {
-                    showMessage("Please enter a valid number of Laps (1 or more).", 'error');
-                    return;
-                }
-
-                savedTimeMs = elapsedTime;
-                savedLaps = enteredLaps;
-                
-                // Stop the timer when time is saved
-                clearInterval(timerInterval);
-                timerInterval = null;
-                
-                showMessage(`Time Saved: ${formatTime(savedTimeMs)} for ${savedLaps} laps. Ready to Upload.`, 'success', 5000);
-
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                statusMessage.textContent = `SUCCESS! ${data.message}. Time: ${data.formattedTime}`;
+                // Optional: Reset timer after successful upload
+                // resetTimer(); 
             } else {
-                showMessage('Run the timer first!', 'error');
+                // Handle success but script-level error message
+                statusMessage.textContent = `Upload failed (Script Error): ${data.message}`;
             }
+            uploadButton.disabled = false;
+        })
+        .catch(error => {
+            // Handle network or JSON parsing errors
+            statusMessage.textContent = `Upload FAILED: ${error.message}. Check browser console for details.`;
+            console.error('Upload Error:', error);
+            uploadButton.disabled = false;
         });
-        
-        // --- UPLOAD LOGIC ---
-        uploadBtn.addEventListener('click', () => {
-            if (savedTimeMs === null) {
-                showMessage('Save a time first!', 'error');
-                return;
-            }
-            
-            // 1. Get Player ID (Default to the working name 'Hernandez')
-            const playerId = prompt("Enter your Player ID (Default = " + DEFAULT_PLAYER_ID + ")", DEFAULT_PLAYER_ID);
+    }
 
-            if (!playerId) {
-                showMessage('Upload cancelled. Player ID is required.', 'info');
-                return;
-            }
+    // Event listeners
+    document.getElementById('start').addEventListener('click', startTimer);
+    document.getElementById('stop').addEventListener('click', stopTimer);
+    document.getElementById('reset').addEventListener('click', resetTimer);
+    saveTimeButton.addEventListener('click', saveTime);
+    uploadButton.addEventListener('click', uploadTime);
 
-            // 2. Prepare Data
-            const data = {
-                PlayerID: playerId.trim(), // Use the name as the ID
-                TimeMs: savedTimeMs,
-                Laps: savedLaps
-            };
+    // Initial state setup
+    resetTimer();
 
-            showMessage('Uploading data...', 'info');
-
-            // 3. Send POST Request to your Google Apps Script Server
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Required for Google Apps Script Web App without advanced setup
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                // The fetch operation is technically always a success with mode: 'no-cors'.
-                // We cannot read the response body directly, so we assume success for the first contact.
-                // We will then use Google Sheet directly after this to confirm the upload.
-                showMessage('Upload Request Sent! Check Google Sheet for confirmation. (Time: ' + formatTime(savedTimeMs) + ')', 'success', 10000);
-                
-                // Auto-reset after presumed success
-                setTimeout(resetBtn.click, 5000);
-            })
-            .catch(error => {
-                showMessage(`Upload Failed! Error: ${error.message}. Check Server URL.`, 'error', 10000);
-            });
-        });
-        
-        // Set the default text for the upload button
-        uploadBtn.textContent = `UPLOAD TIME (ID: ${DEFAULT_PLAYER_ID})`;
-
-    </script>
-</body>
-</html>
+</script>
