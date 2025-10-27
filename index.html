@@ -1,4 +1,5 @@
 <script>
+document.addEventListener('DOMContentLoaded', (event) => {
     // ----------------------------------------------------------------------------------
     // *** Web App URL (Final, corrected link to Version 7 Apps Script) ***
     // ----------------------------------------------------------------------------------
@@ -10,8 +11,7 @@
     let timerInterval;
     let currentMs = 0;
     
-    // Select elements using querySelector or getElementById for maximum compatibility
-    // If one ID fails, the app still crashes, but this is the established pattern:
+    // Select elements using document.getElementById
     const stopwatchDisplay = document.getElementById('stopwatch-display');
     const playerIDInput = document.getElementById('playerID');
     const lapsInput = document.getElementById('laps');
@@ -19,11 +19,18 @@
     const uploadButton = document.getElementById('upload');
     const statusMessage = document.getElementById('statusMessage');
 
-    // **CRASH FIX:** Find the buttons by their specific type or a more general selector
-    const startButton = document.getElementById('start') || document.querySelector('button[onclick="startTimer()"]');
-    const stopButton = document.getElementById('stop') || document.querySelector('button[onclick="stopTimer()"]');
-    const resetButton = document.getElementById('reset') || document.querySelector('button[onclick="resetTimer()"]');
+    // Select buttons explicitly
+    const startButton = document.getElementById('start');
+    const stopButton = document.getElementById('stop');
+    const resetButton = document.getElementById('reset');
     
+    // Check if critical elements exist before proceeding to prevent crash (Safety Check)
+    if (!startButton || !stopButton || !resetButton || !stopwatchDisplay) {
+        console.error("CRITICAL ERROR: One or more essential HTML elements (buttons/display) are missing.");
+        document.body.textContent = "Error: App failed to load. Check element IDs.";
+        return; // Stop script execution
+    }
+
     // Helper to format milliseconds into MM:SS.mmm
     function formatTime(ms) {
         if (typeof ms !== 'number' || ms < 0) return "00:00.000";
@@ -128,9 +135,7 @@
             body: JSON.stringify(data)
         })
         .then(response => {
-            // Check if response is okay (status 200)
             if (!response.ok) {
-                // If not, read the error message from the server response
                 return response.json().then(errorData => {
                     throw new Error(errorData.message || 'Server returned an error status.');
                 });
@@ -140,16 +145,12 @@
         .then(data => {
             if (data.status === 'success') {
                 statusMessage.textContent = `SUCCESS! ${data.message}. Time: ${data.formattedTime}`;
-                // Optional: Reset timer after successful upload
-                // resetTimer(); 
             } else {
-                // Handle success but script-level error message
                 statusMessage.textContent = `Upload failed (Script Error): ${data.message}`;
             }
             uploadButton.disabled = false;
         })
         .catch(error => {
-            // Handle network or JSON parsing errors
             statusMessage.textContent = `Upload FAILED: ${error.message}. Check browser console for details.`;
             console.error('Upload Error:', error);
             uploadButton.disabled = false;
@@ -165,5 +166,5 @@
 
     // Initial state setup
     resetTimer();
-
+}); // Closes the DOMContentLoaded listener
 </script>
