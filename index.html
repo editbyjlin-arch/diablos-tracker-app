@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diablos Tracker V1.0</title>
+    <style>
+        /* CSS for a simple, football-themed phone app look */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a; /* Dark background */
+            color: #f0f0f0; /* Light text */
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 400px;
+            margin: 50px auto;
+            background-color: #2c2c2c;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            color: #ffcc00; /* Yellow/Gold for Diablos */
+            margin-bottom: 30px;
+            font-size: 1.5em;
+        }
+        .timer-display {
+            font-size: 3.5em;
+            font-weight: bold;
+            color: #00cc66; /* Bright Green for Go/Time */
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border-radius: 8px;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        button {
+            padding: 15px 10px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        #startButton, #saveButton {
+            background-color: #00cc66; /* Green */
+            color: #1a1a1a;
+        }
+        #stopButton, #resetButton {
+            background-color: #cc0033; /* Red */
+            color: #f0f0f0;
+        }
+        #uploadButton {
+            grid-column: 1 / 3;
+            background-color: #ffcc00; /* Yellow/Gold */
+            color: #1a1a1a;
+            padding: 20px;
+            margin-top: 10px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #555;
+            background-color: #3a3a3a;
+            color: #f0f0f0;
+            font-size: 1.1em;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        #lapsInput {
+             background-color: #4a4a4a;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            color: #1a1a1a;
+            font-weight: bold;
+            display: none;
+        }
+        .success { background-color: #00cc66; }
+        .error { background-color: #cc0033; color: #f0f0f0; }
+        .info { background-color: #ffcc00; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>DIABLOS SPEED TRACKER</h1>
+
+    <div class="timer-display" id="display">00:00.000</div>
+
+    <input type="number" id="lapsInput" placeholder="2 Laps" value="2" min="1" required>
+
+    <div class="button-grid">
+        <button id="startButton">▶ START</button>
+        <button id="stopButton" disabled>■ STOP</button>
+        <button id="resetButton">↺ RESET</button>
+        <button id="saveButton" disabled>💾 SAVE TIME</button>
+    </div>
+
+    <button id="uploadButton">UPLOAD TIME & LAPS (ID: 100)</button>
+
+    <div id="message" class="message"></div>
+</div>
+
+<script>
+    // --- Configuration: DO NOT EDIT ---
+    // THIS IS YOUR LIVE SERVER URL (from Google Apps Script):
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycwbBhd0lPVdTGSrM8jnz8Gliw2gmWAv3c_xlyucuw3DDm0bk1RJUCQYYtpFb3BBfHwUm/exec';
+    const DEFAULT_PLAYER_ID = '100'; 
+    // --- End Configuration ---
+
+    // DOM Elements
+    const display = document.getElementById('display');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    const resetButton = document.getElementById('resetButton');
+    const saveButton = document.getElementById('saveButton');
+    const uploadButton = document.getElementById('uploadButton');
+    const lapsInput = document.getElementById('lapsInput');
+    const messageDisplay = document.getElementById('message');
+
+    // Stopwatch variables
+    let startTime;
+    let elapsedTime = 0;
+    let timerInterval;
+    let isRunning = false;
+    let savedTimeMs = 0; // Holds the time in milliseconds for upload
+
+    // --- STOPWATCH LOGIC ---
+
+    function formatTime(ms) {
+        const totalMs = Math.floor(ms);
+        const minutes = Math.floor(totalMs / 60000);
+        const seconds = Math.floor((totalMs % 60000) / 1000);
+        const milliseconds = totalMs % 1000;
+
+        return (
+            (minutes < 10 ? '0' : '') + minutes + ':' +
+            (seconds < 10 ? '0' : '') + seconds + '.' +
+            (milliseconds < 100 ? (milliseconds < 10 ? '00' : '0') : '') + milliseconds
+        );
+    }
+
+    function startTimer() {
+        if (isRunning) return;
+        isRunning = true;
+        
+        startTime = Date.now() - elapsedTime;
+        timerInterval = setInterval(() => {
+            elapsedTime = Date.now() - startTime;
+            display.textContent = formatTime(elapsedTime);
+        }, 1); // Updates every millisecond for high precision display
+
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        saveButton.disabled = true;
+        messageDisplay.style.display = 'none';
+        messageDisplay.textContent = '';
+    }
+
+    function stopTimer() {
+        if (!isRunning) return;
+        isRunning = false;
+        clearInterval(timerInterval);
+        
+        savedTimeMs = elapsedTime;
+        display.textContent = formatTime(savedTimeMs); // Final, precise time
+        
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        saveButton.disabled = false;
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        elapsedTime = 0;
+        savedTimeMs = 0;
+        display.textContent = '00:00.000';
+
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        saveButton.disabled = true;
+        messageDisplay.style.display = 'none';
+        messageDisplay.textContent = '';
+    }
+    
+    // --- UPLOAD (POST) LOGIC ---
+    
+    function showMessage(msg, type) {
+        messageDisplay.textContent = msg;
+        messageDisplay.className = 'message ' + type;
+        messageDisplay.style.display = 'block';
+    }
+
+    function uploadTime() {
+        // Step 1: Check if a time is saved
+        if (savedTimeMs === 0) {
+            showMessage('Please run and save a time before uploading.', 'info');
+            return;
+        }
+        
+        // Step 2: Get Player ID
+        const playerId = prompt("Enter your Player ID (Default is " + DEFAULT_PLAYER_ID + "):", DEFAULT_PLAYER_ID);
+        if (!playerId) {
+            showMessage('Upload cancelled. Player ID is required.', 'info');
+            return;
+        }
+        
+        // Step 3: Get Laps
+        const laps = parseInt(lapsInput.value);
+        if (isNaN(laps) || laps < 1) {
+            showMessage('Please enter a valid number of Laps (1 or more).', 'error');
+            return;
+        }
+
+        // Step 4: Prepare Data
+        const data = {
+            PlayerID: playerId.trim(),
+            TimeMs: savedTimeMs,
+            Laps: laps
+        };
+        
+        showMessage('Uploading data...', 'info');
+
+        // Step 5: Send POST Request to your Google Apps Script Server
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Required for Google Apps Script Web App without advanced setup
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+             // The fetch operation is technically always a success with mode: 'no-cors'.
+             // We cannot read the response body directly, so we assume success for the first contact.
+             // We will check the Google Sheet directly after this to confirm the upload.
+             showMessage('Upload Request Sent! Check Google Sheet for confirmation. (Time: ' + formatTime(savedTimeMs) + ')', 'success');
+             // Auto-reset after presumed success
+             resetTimer();
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+            showMessage('Upload Failed! Error sending data to server.', 'error');
+        });
+    }
+
+    // --- EVENT LISTENERS ---
+    startButton.addEventListener('click', startTimer);
+    stopButton.addEventListener('click', stopTimer);
+    resetButton.addEventListener('click', resetTimer);
+    saveButton.addEventListener('click', () => {
+        // Save is handled by the Stop button's logic (savedTimeMs is set).
+        showMessage('Time Saved: ' + formatTime(savedTimeMs) + '. Ready to Upload.', 'success');
+        saveButton.disabled = true; // Prevents re-saving same time
+    });
+    uploadButton.addEventListener('click', uploadTime);
+    
+    // Initial UI setup
+    uploadButton.textContent = `UPLOAD TIME (ID: ${DEFAULT_PLAYER_ID})`;
+</script>
+
+</body>
+</html>
