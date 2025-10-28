@@ -109,34 +109,45 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', (event) => {
-    // ----------------------------------------------------------------------------------
-    // *** Web App URL (GUARANTEED CLEAN URL) ***
-    // ----------------------------------------------------------------------------------
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbBhd0IPvTDTgSM8jnz8Giw2gmWAv3c_xIyucuw3DDmOBk1RjuCQYYtpFb3BBfHwUm/exec"; 
-    // ----------------------------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', function() {
+    // ============================================================================
+    // GOOGLE APPS SCRIPT WEB APP URL
+    // ============================================================================
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbBhd0IPvTDTgSM8jnz8Giw2gmWAv3c_xIyucuw3DDmOBk1RjuCQYYtpFb3BBfHwUm/exec";
     
-    // Global variables for the timer
+    // ============================================================================
+    // GLOBAL TIMER VARIABLES
+    // ============================================================================
     let startTime;
     let timerInterval;
     let currentMs = 0;
     
-    // Select elements using document.getElementById
+    // ============================================================================
+    // DOM ELEMENT REFERENCES
+    // ============================================================================
     const stopwatchDisplay = document.getElementById('stopwatch-display');
-    const playerIDInput = document.getElementById('playerID'); 
+    const playerIDInput = document.getElementById('playerID');
     const lapsInput = document.getElementById('laps');
     const saveTimeButton = document.getElementById('saveTime');
     const uploadButton = document.getElementById('upload');
     const statusMessage = document.getElementById('statusMessage');
-
-    // Select buttons explicitly
     const startButton = document.getElementById('start');
     const stopButton = document.getElementById('stop');
     const resetButton = document.getElementById('reset');
+    
+    // Safety check: Verify all critical elements exist
+    if (!startButton || !stopButton || !resetButton || !stopwatchDisplay) {
+        console.error("CRITICAL ERROR: Essential HTML elements are missing.");
+        document.body.innerHTML = "<div style='color: red; padding: 20px;'>Error: App failed to load. Check element IDs.</div>";
+        return;
+    }
 
-    // Helper to format milliseconds into MM:SS.mmm
+    // ============================================================================
+    // TIME FORMATTING FUNCTION
+    // ============================================================================
     function formatTime(ms) {
         if (typeof ms !== 'number' || ms < 0) return "00:00.000";
+        
         const totalSeconds = Math.floor(ms / 1000);
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
@@ -148,16 +159,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
         return `${pad(minutes)}:${pad(seconds)}.${msPad}`;
     }
 
-    // Function to update the displayed time
+    // ============================================================================
+    // TIMER DISPLAY UPDATE
+    // ============================================================================
     function updateDisplay() {
         currentMs = Date.now() - startTime;
         stopwatchDisplay.textContent = formatTime(currentMs);
     }
 
-    // Start the stopwatch
+    // ============================================================================
+    // START TIMER
+    // ============================================================================
     function startTimer() {
         startTime = Date.now() - currentMs;
-        timerInterval = setInterval(updateDisplay, 1); // Update every millisecond
+        timerInterval = setInterval(updateDisplay, 1);
         startButton.disabled = true;
         stopButton.disabled = false;
         saveTimeButton.disabled = true;
@@ -165,7 +180,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         statusMessage.textContent = 'Timer Running...';
     }
 
-    // Stop the stopwatch
+    // ============================================================================
+    // STOP TIMER
+    // ============================================================================
     function stopTimer() {
         clearInterval(timerInterval);
         startButton.disabled = false;
@@ -174,7 +191,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         statusMessage.textContent = `Time saved locally: ${formatTime(currentMs)}`;
     }
 
-    // Reset the stopwatch
+    // ============================================================================
+    // RESET TIMER
+    // ============================================================================
     function resetTimer() {
         clearInterval(timerInterval);
         currentMs = 0;
@@ -188,7 +207,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         statusMessage.textContent = 'Ready.';
     }
 
-    // Save the time locally (no action needed other than enabling upload)
+    // ============================================================================
+    // SAVE TIME (ENABLE UPLOAD)
+    // ============================================================================
     function saveTime() {
         if (currentMs > 0) {
             uploadButton.disabled = false;
@@ -198,11 +219,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
     }
 
-    // Upload the time to Google Sheets
+    // ============================================================================
+    // UPLOAD TIME TO GOOGLE SHEETS
+    // ============================================================================
     function uploadTime() {
         const playerID = playerIDInput.value.trim();
         const laps = parseInt(lapsInput.value);
 
+        // Validation
         if (!playerID) {
             alert("Please enter a PlayerID.");
             return;
@@ -218,58 +242,89 @@ document.addEventListener('DOMContentLoaded', (event) => {
             return;
         }
         
+        // Disable button and show uploading status
         uploadButton.disabled = true;
         statusMessage.textContent = 'UPLOADING... please wait.';
 
+        // Prepare data payload
         const data = {
             PlayerID: playerID,
             TimeMs: currentMs,
             Laps: laps
         };
 
-        // Use the defined WEB_APP_URL
+        // ========================================================================
+        // CORRECTED FETCH REQUEST - NO RESTRICTIVE PARAMETERS
+        // ========================================================================
         fetch(WEB_APP_URL, {
+            redirect: 'follow',
             method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data)
         })
         .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
             if (!response.ok) {
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || 'Server returned an error status.');
+                // Try to parse error message from response
+                return response.text().then(text => {
+                    let errorMsg = `Server error: ${response.status} ${response.statusText}`;
+                    try {
+                        const errorData = JSON.parse(text);
+                        if (errorData.message) {
+                            errorMsg = errorData.message;
+                        }
+                    } catch (e) {
+                        // Not JSON, use status text
+                    }
+                    throw new Error(errorMsg);
                 });
             }
             return response.json();
         })
         .then(data => {
+            console.log('Response data:', data);
+            
             if (data.status === 'success') {
                 statusMessage.textContent = `SUCCESS! ${data.message}. Time: ${data.formattedTime}`;
+                statusMessage.style.backgroundColor = '#d4edda';
+                statusMessage.style.color = '#155724';
             } else {
-                statusMessage.textContent = `Upload failed (Script Error): ${data.message}`;
+                statusMessage.textContent = `Upload failed: ${data.message}`;
+                statusMessage.style.backgroundColor = '#f8d7da';
+                statusMessage.style.color = '#721c24';
             }
             uploadButton.disabled = false;
         })
         .catch(error => {
-            statusMessage.textContent = `Upload FAILED: ${error.message}. Check browser console for details.`;
             console.error('Upload Error:', error);
+            statusMessage.textContent = `Upload FAILED: ${error.message}`;
+            statusMessage.style.backgroundColor = '#f8d7da';
+            statusMessage.style.color = '#721c24';
             uploadButton.disabled = false;
         });
     }
 
-    // Event listeners
+    // ============================================================================
+    // EVENT LISTENERS
+    // ============================================================================
     startButton.addEventListener('click', startTimer);
     stopButton.addEventListener('click', stopTimer);
     resetButton.addEventListener('click', resetTimer);
     saveTimeButton.addEventListener('click', saveTime);
     uploadButton.addEventListener('click', uploadTime);
 
-    // Initial state setup
+    // ============================================================================
+    // INITIALIZE APP
+    // ============================================================================
     resetTimer();
-}); // Closes the DOMContentLoaded listener
+    console.log('Diablos Race Tracker initialized successfully.');
+    console.log('Web App URL:', WEB_APP_URL);
+});
 </script>
+
 </body>
 </html>
