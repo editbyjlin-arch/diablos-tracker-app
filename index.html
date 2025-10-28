@@ -111,16 +111,17 @@
 <script>
 document.addEventListener('DOMContentLoaded', (event) => {
     // ----------------------------------------------------------------------------------
-    // *** Web App URL (FINAL CORRECT URL) ***
+    // *** Web App URL (GUARANTEED CLEAN URL) ***
     // ----------------------------------------------------------------------------------
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbBhd0IPvTDTgSM8jnz8Giw2gmWAv3c_xIyucuw3DDmOBk1RjuCQYYtpFb3BBfHwUm/exec";    // ----------------------------------------------------------------------------------
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbBhd0IPvTDTgSM8jnz8Giw2gmWAv3c_xIyucuw3DDmOBk1RjuCQYYtpFb3BBfHwUm/exec"; 
+    // ----------------------------------------------------------------------------------
     
     // Global variables for the timer
     let startTime;
     let timerInterval;
     let currentMs = 0;
     
-    // Select elements using document.getElementById (IDs MUST match HTML above)
+    // Select elements using document.getElementById
     const stopwatchDisplay = document.getElementById('stopwatch-display');
     const playerIDInput = document.getElementById('playerID'); 
     const lapsInput = document.getElementById('laps');
@@ -132,8 +133,6 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbBhd0IPvTDTgSM8jn
     const startButton = document.getElementById('start');
     const stopButton = document.getElementById('stop');
     const resetButton = document.getElementById('reset');
-    
-    // The previous safety check is removed, as the HTML is now guaranteed to match the script.
 
     // Helper to format milliseconds into MM:SS.mmm
     function formatTime(ms) {
