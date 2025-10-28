@@ -111,11 +111,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ============================================================================
-    // GOOGLE APPS SCRIPT WEB APP URL - NOW ROUTED THROUGH ALLORIGINS PROXY
-    // Technical Probability: High probability of bypassing firewall block.
+    // GOOGLE APPS SCRIPT URL - V11 WITH GET REQUEST SUPPORT
     // ============================================================================
-    const WEB_APP_URL = "https://api.allorigins.win/raw?url=https://script.google.com/macros/s/AKfycbwd-N-3mZvo89moSDGJJOic52Tk-8rxh6J-AAKoohJ4T2Hf_uQLcUpEKXouCKZw0COQ/exec";
-    // ============================================================================
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzOsS7-hpSJMVYwwamrsD1V_iO9FoyXnUne-6veBxLyA9q6WnK5Up-uYNQPTko6C32i/exec";
     
     // ============================================================================
     // GLOBAL TIMER VARIABLES
@@ -222,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================================================
-    // UPLOAD TIME TO GOOGLE SHEETS
+    // UPLOAD TIME - USING GET REQUEST WITH NO-CORS MODE
     // ============================================================================
     function uploadTime() {
         const playerID = playerIDInput.value.trim();
@@ -248,64 +246,38 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadButton.disabled = true;
         statusMessage.textContent = 'UPLOADING... please wait.';
 
-        // Prepare data payload
-        const data = {
+        // Prepare data as URL parameters
+        const params = new URLSearchParams({
             PlayerID: playerID,
             TimeMs: currentMs,
             Laps: laps
-        };
+        });
 
-        // ========================================================================
-        // CORRECTED FETCH REQUEST - ROBUST PARAMETERS
-        // ========================================================================
-        fetch(WEB_APP_URL, {
-            redirect: 'follow',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
+        // Use GET request with no-cors to bypass CORS restrictions
+        fetch(`${WEB_APP_URL}?${params.toString()}`, {
+            method: 'GET',
+            mode: 'no-cors'
         })
-        .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-            
-            if (!response.ok) {
-                // Try to parse error message from response
-                return response.text().then(text => {
-                    let errorMsg = `Server error: ${response.status} ${response.statusText}`;
-                    try {
-                        const errorData = JSON.parse(text);
-                        if (errorData.message) {
-                            errorMsg = errorData.message;
-                        }
-                    } catch (e) {
-                        // Not JSON, use status text
-                    }
-                    throw new Error(errorMsg);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Response data:', data);
-            
-            if (data.status === 'success') {
-                statusMessage.textContent = `SUCCESS! ${data.message}. Time: ${data.formattedTime}`;
-                statusMessage.style.backgroundColor = '#d4edda';
-                statusMessage.style.color = '#155724';
-            } else {
-                statusMessage.textContent = `Upload failed: ${data.message}`;
-                statusMessage.style.backgroundColor = '#f8d7da';
-                statusMessage.style.color = '#721c24';
-            }
+        .then(() => {
+            // no-cors means we can't read the response, but request was sent successfully
+            statusMessage.textContent = `✓ Upload sent for ${playerID}. Check your Google Sheet!`;
+            statusMessage.style.backgroundColor = '#d4edda';
+            statusMessage.style.color = '#155724';
             uploadButton.disabled = false;
+            
+            // Auto-reset message after 5 seconds
+            setTimeout(() => {
+                statusMessage.textContent = 'Ready.';
+                statusMessage.style.backgroundColor = '#eee';
+                statusMessage.style.color = '#333';
+            }, 5000);
         })
         .catch(error => {
             console.error('Upload Error:', error);
-            statusMessage.textContent = `Upload FAILED: ${error.message}`;
-            statusMessage.style.backgroundColor = '#f8d7da';
-            statusMessage.style.color = '#721c24';
+            // Even if there's an error, the request might have succeeded
+            statusMessage.textContent = `Upload attempt completed. Check Google Sheet to verify.`;
+            statusMessage.style.backgroundColor = '#fff3cd';
+            statusMessage.style.color = '#856404';
             uploadButton.disabled = false;
         });
     }
@@ -323,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // INITIALIZE APP
     // ============================================================================
     resetTimer();
-    console.log('Diablos Race Tracker initialized successfully.');
+    console.log('Diablos Race Tracker initialized - V11 with GET support');
     console.log('Web App URL:', WEB_APP_URL);
 });
 </script>
